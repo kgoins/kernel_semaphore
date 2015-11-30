@@ -11,14 +11,17 @@ static int thread_in_queue (pthread_t thread, semaphore_t* sem) {
         if(pthread_equal(np->thread, thread))
             return 1;
     }
-
     return 0;
 }
 
-semaphore_t* createSem ( int initCount ) {
+semaphore_t* createSem ( const char* name, int initCount ) {
     /* create new semaphore */
     semaphore_t* newSem = (semaphore_t*) malloc(sizeof(semaphore_t));
     newSem->count = initCount;
+
+    /* sanatize string and set semaphore name */
+    strncpy(newSem->name,name,31);
+    newSem->name[31] = '\0';
 
     /* init synch vars */
     pthread_mutex_init(&newSem->mutex, NULL);

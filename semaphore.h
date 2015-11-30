@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "queue.h"
 
 typedef struct entry {
@@ -18,13 +19,15 @@ typedef struct {
 
 typedef struct {
     int count;
+    char name[32];
+
     queuehead head;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
 
 } semaphore_t;
 
-semaphore_t* createSem(int initCount);
+semaphore_t* createSem(const char* name, int initCount);
 void destroySem(semaphore_t* target);
 
 void down(semaphore_t* sem);
