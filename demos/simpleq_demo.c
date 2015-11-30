@@ -26,5 +26,8 @@ int main (int argc, char const* argv[])
     SIMPLEQ_REMOVE_HEAD(&head, (nodePtr = SIMPLEQ_FIRST(&head)), next );
     printf("removed entry %d\n", nodePtr->data);
 
+    /* cleanup pointers */
+    free(item1);
+
     return 0;
 }
