@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "queue.h"
+#include "../queue.h"
 typedef struct entry {
         int data;
         SIMPLEQ_ENTRY(entry) next;
@@ -15,7 +15,7 @@ int main (int argc, char const* argv[])
     item1->data = 12;
 
     /* init queue */
-    SIMPLEQ_HEAD(head, entry) head = SIMPLEQ_HEAD_INITIALIZER(head);
+    SIMPLEQ_HEAD(queuehead, entry) head = SIMPLEQ_HEAD_INITIALIZER(head);
 
     SIMPLEQ_INSERT_TAIL(&head, item1, next);
 

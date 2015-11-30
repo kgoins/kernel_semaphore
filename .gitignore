@@ -20,6 +20,7 @@
 *.so.*
 *.dylib
 *.swp
+*.swo
 
 # Executables
 *.exe

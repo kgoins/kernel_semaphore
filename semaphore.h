@@ -6,19 +6,23 @@
 #include <stdio.h>
 #include "queue.h"
 
-typedef struct {
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-    int count;
-    SIMPLEQ_HEAD(head,entry) head;
-    pthread_t headTID;
-
-} semaphore_t;
-
-typedef struct {
+typedef struct entry {
     pthread_t thread;
     SIMPLEQ_ENTRY(entry) next;
 } entry;
+
+typedef struct {
+    struct entry *sqh_first;
+    struct entry **sqh_last;
+} queuehead;
+
+typedef struct {
+    int count;
+    queuehead head;
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+
+} semaphore_t;
 
 semaphore_t* createSem(int initCount);
 void destroySem(semaphore_t* target);
