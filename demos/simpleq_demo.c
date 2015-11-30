@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include "queue.h"
 typedef struct entry {
@@ -24,9 +23,7 @@ int main (int argc, char const* argv[])
     SIMPLEQ_FOREACH(nodePtr, &head, next)
         printf("entry %d\n", nodePtr->data);
 
-    nodePtr = SIMPLEQ_FIRST(&head);
-
-    SIMPLEQ_REMOVE_HEAD(&head, nodePtr, next );
+    SIMPLEQ_REMOVE_HEAD(&head, (nodePtr = SIMPLEQ_FIRST(&head)), next );
     printf("removed entry %d\n", nodePtr->data);
 
     return 0;
