@@ -2,12 +2,12 @@
 
 int sys_sem_count = 0;
 
-static int thread_in_queue (pthread_t thread, semaphore_t* sem) {
+static int thread_in_queue (pthread_t thread, struct semaphore_t* sem) {
     /* if the thread is in sem's wait queue, return 1
      * else, return 0
      */
 
-    entry* np; /* loop variable */
+    struct entry* np; /* loop variable */
 
     SIMPLEQ_FOREACH(np, &(sem->head), next) {
         if(pthread_equal(np->thread, thread))
@@ -16,8 +16,8 @@ static int thread_in_queue (pthread_t thread, semaphore_t* sem) {
     return 0;
 }
 
-semaphore_t* find_semaphore (const char* semName, proc_sim_t* targ_proc) {
-    node* np;
+struct semaphore_t* find_semaphore (const char* semName, struct proc_sim_t* targ_proc) {
+    struct node* np;
     if(targ_proc->parent == NULL) 
         return NULL;
 
@@ -32,9 +32,9 @@ semaphore_t* find_semaphore (const char* semName, proc_sim_t* targ_proc) {
     return NULL;
 }
 
-int createSem ( const char* name, int initCount , proc_sim_t* this_proc) {
-    semaphore_t* newSem; /* the newly created semaphore */
-    node* np; /* will hold the new sem in its proc's sem list */
+int createSem ( const char* name, int initCount , struct proc_sim_t* this_proc) {
+    struct semaphore_t* newSem; /* the newly created semaphore */
+    struct node* np; /* will hold the new sem in its proc's sem list */
 
     if ( sys_sem_count >= SYS_SEM_MAX )
         return ENOMEM;
@@ -46,7 +46,7 @@ int createSem ( const char* name, int initCount , proc_sim_t* this_proc) {
         return EEXIST;
 
     /* create new semaphore */
-    newSem = (semaphore_t*) malloc(sizeof(semaphore_t));
+    newSem = (struct semaphore_t*) malloc(sizeof(struct semaphore_t));
 
 
     /* set name and count*/
@@ -66,7 +66,7 @@ int createSem ( const char* name, int initCount , proc_sim_t* this_proc) {
     newSem->my_proc = this_proc;
 
     /* wrap sem in node and add to its proc's sem list */
-    np = (node*) malloc(sizeof(node));
+    np = (struct node*) malloc(sizeof(struct node));
     np->sem = newSem;
 
     LIST_INSERT_HEAD( &(newSem->my_proc->list_head), np, next);
@@ -78,8 +78,8 @@ int createSem ( const char* name, int initCount , proc_sim_t* this_proc) {
     return 0;
 }
 
-int free_semaphore (semaphore_t* targSem) {
-    node* np; /*loop var*/
+int free_semaphore (struct semaphore_t* targSem) {
+    struct node* np; /*loop var*/
 
     if (find_semaphore(targSem->name, targSem->my_proc) == NULL)
         return ENOENT;
@@ -105,8 +105,8 @@ int free_semaphore (semaphore_t* targSem) {
     return 0;
 }
 
-int down (semaphore_t* sem) {
-    entry* np; /* will hold node for process wait queue if needed  */
+int down (struct semaphore_t* sem) {
+    struct entry* np; /* will hold node for process wait queue if needed  */
 
     if (find_semaphore(sem->name, sem->my_proc) == NULL)
         return ENOENT;
@@ -121,7 +121,7 @@ int down (semaphore_t* sem) {
 
         if ( !thread_in_queue(pthread_self(), sem) ) {
             /* create new queue entry from current thread */
-            np = (entry*) malloc(sizeof(entry));
+            np = (struct entry*) malloc(sizeof(struct entry));
             np->thread = pthread_self();
 
             /* enqueue */
@@ -139,8 +139,8 @@ int down (semaphore_t* sem) {
     return 0;
 }
 
-int up (semaphore_t* sem) {
-    entry* queue_head;
+int up (struct semaphore_t* sem) {
+    struct entry* queue_head;
 
     if (find_semaphore(sem->name, sem->my_proc) == NULL)
         return ENOENT;

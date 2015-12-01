@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -ansi -pthread
-SRC = sem_test.c semaphore.c
+SRC = sem_test.c semaphore.c proc_sim.c
 OBJS = $(SRC:.c=.o)
 
 EXEC = run
