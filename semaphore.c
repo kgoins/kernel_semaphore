@@ -2,7 +2,7 @@
 
 int sys_sem_count = 0;
 
-static int thread_in_queue (pthread_t thread, struct semaphore_t* sem) {
+static int thread_in_queue (pid_t pid, struct semaphore_t* sem) {
     /* if the thread is in sem's wait queue, return 1
      * else, return 0
      */
@@ -16,7 +16,7 @@ static int thread_in_queue (pthread_t thread, struct semaphore_t* sem) {
     return 0;
 }
 
-struct semaphore_t* find_semaphore (const char* semName, struct proc_sim_t* targ_proc) {
+struct semaphore_t* find_semaphore (const char* semName) {
     struct node* np;
 
     printf("find: targ_proc pid is %d\n", targ_proc->pid);
@@ -47,13 +47,13 @@ int allocate_semaphore( const char* name, int initCount , struct proc_sim_t* thi
     printf("alloc: starting\n");
     printf("alloc: this proc's pid is %d\n", this_proc->pid);
 
-    if ( sys_sem_count >= SYS_SEM_MAX )
+    if( sys_sem_count >= SYS_SEM_MAX )
         return ENOMEM;
 
-    if ( strlen(name) > SYS_SEM_NAME_MAX )
+    if( strlen(name) > SYS_SEM_NAME_MAX )
         return ENAMETOOLONG;
 
-    if ( find_semaphore(name, this_proc) != NULL )
+    if( find_semaphore(name, this_proc) != NULL )
         return EEXIST;
 
     /* create new semaphore */
@@ -64,8 +64,6 @@ int allocate_semaphore( const char* name, int initCount , struct proc_sim_t* thi
     strcpy(newSem->name, name);
 
     /* init lock vars */
-    pthread_mutex_init(&newSem->mutex, NULL);
-    pthread_cond_init(&newSem->cond, NULL);
 
     /* init queue head */
     /* (expansion of the SIMPLEQ_HEAD_INITIALIZER macro in queue.h) */
@@ -89,7 +87,7 @@ int allocate_semaphore( const char* name, int initCount , struct proc_sim_t* thi
     return 0;
 }
 
-int free_semaphore (const char* name, struct proc_sim_t* this_proc) {
+int free_semaphore (const char* name) {
     struct node* np; /*loop var*/
     struct semaphore_t* sem = find_semaphore(name, this_proc);
 
@@ -117,7 +115,7 @@ int free_semaphore (const char* name, struct proc_sim_t* this_proc) {
     return 0;
 }
 
-int down_semaphore(const char* name, struct proc_sim_t* this_proc) {
+int down_semaphore(const char* name) {
     struct entry* np; /* will hold node for process wait queue if needed  */
     struct semaphore_t* sem = find_semaphore(name, this_proc);
 
@@ -125,7 +123,6 @@ int down_semaphore(const char* name, struct proc_sim_t* this_proc) {
         return ENOENT;
 
     printf("Count: %d\n", sem->count);
-    pthread_mutex_lock(&sem->mutex);
 
     /* threads must wait if no resources are available, */
     /* or if they are already waiting */
@@ -141,25 +138,21 @@ int down_semaphore(const char* name, struct proc_sim_t* this_proc) {
             SIMPLEQ_INSERT_TAIL(&(sem->head), np, next);
         }
         
-        pthread_cond_wait(&sem->cond, &sem->mutex);
         if (find_semaphore(sem->name, sem->my_proc) == NULL)
             return ECONNABORTED;
     }
 
     sem->count--;
-    pthread_mutex_unlock(&sem->mutex);
 
     return 0;
 }
 
-int up_semaphore(const char* name, struct proc_sim_t* this_proc) {
+int up_semaphore(const char* name) {
     struct entry* queue_head;
     struct semaphore_t* sem = find_semaphore(name, this_proc);
 
     if (sem == NULL)
         return ENOENT;
-
-    pthread_mutex_lock(&sem->mutex);
 
     if (sem->count == 0) {
         sem->count++;
@@ -169,12 +162,9 @@ int up_semaphore(const char* name, struct proc_sim_t* this_proc) {
         SIMPLEQ_REMOVE_HEAD(&(sem->head), queue_head, next);
         free(queue_head);
 
-        pthread_cond_broadcast(&sem->cond);
     } 
     
     else sem->count++;
-
-    pthread_mutex_unlock(&sem->mutex);
 
     return 0;
 }
