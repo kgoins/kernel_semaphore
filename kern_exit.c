@@ -76,6 +76,10 @@
 
 #include <uvm/uvm_extern.h>
 
+/* added by kgoins */
+#include <sys/semaphore.h>
+/* added by kgoins */
+
 /*
  * exit --
  *	Death of process.
@@ -107,6 +111,11 @@ exit1(p, rv)
 {
 	struct proc *q, *nq;
 
+    /* added by kgoins */
+    struct semaphore_t* sem;
+    struct entry* np;
+    /* added by kgoins */
+
 	if (p->p_pid == 1)
 		panic("init died (signal %d, exit %d)",
 		    WTERMSIG(rv), WEXITSTATUS(rv));
@@ -137,6 +146,24 @@ exit1(p, rv)
 #ifdef SYSVSEM
 	semexit(p);
 #endif
+
+/* added by kgoins */
+    LIST_FOREACH(sem, &(p->sem_list), next_sem) {
+        LIST_REMOVE(sem, next_sem);
+        wakeup(*sem);
+
+        SIMPLEQ_FOREACH(np, &(sem->head), next_sem) {
+            SIMPLEQ_REMOVE_HEAD(sem, np, next_proc);
+                free(np, M_SUBPROC);
+        }
+
+        free(sem->lock, M_SUBPROC);
+        free(sem->s_lock, M_SUBPROC);
+
+        free(sem, M_SUBPROC);
+    }
+/* added by kgoins */
+
 	if (SESS_LEADER(p)) {
 		register struct session *sp = p->p_session;
 

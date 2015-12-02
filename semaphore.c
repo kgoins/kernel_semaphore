@@ -84,7 +84,7 @@ int sys_free_semaphore(struct proc* p, void* v, register_t* retval) {
 
      LIST_REMOVE(sem, next);
 
-     wakeup(sem);
+     wakeup(*sem);
 
      SIMPLEQ_FOREACH(np, sem->head, next_proc)
          free(np, M_SUBPROC);

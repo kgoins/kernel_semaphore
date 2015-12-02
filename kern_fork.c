@@ -348,6 +348,10 @@ fork1(struct proc *p1, int exitsig, int flags, void *stack, size_t stacksize,
 		systrace_fork(p1, p2);
 #endif
 
+    /* added by kgoins */
+    LIST_INIT(&(p2->sem_list));
+    /* added by kgoins */
+
 	/*
 	 * Make child runnable, set start time, and add to run queue.
 	 */
