@@ -581,6 +581,7 @@
 ;==========================================================================
 
 ;added by Dave Small
-289	STD		{ int sys_hello( void ); }
-290	STD		{ int sys_showargs( const char *str, int val ); }
-291	STD		{ int sys_cipher(char* text, int lkey, int nkey);  }
+289	STD		{ int allocate_semaphore(const char* name, int initCount); }
+290	STD		{ int free_semaphore(const char* name); }
+291	STD		{ int down_semaphore(const char* name); }
+292	STD		{ int up_semaphore(const char* name); }
