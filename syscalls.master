@@ -581,7 +581,7 @@
 ;==========================================================================
 
 ;added by Dave Small
-289	STD		{ int allocate_semaphore(const char* name, int initCount); }
-290	STD		{ int free_semaphore(const char* name); }
-291	STD		{ int down_semaphore(const char* name); }
-292	STD		{ int up_semaphore(const char* name); }
+289	STD		{ int sys_allocate_semaphore(const char* name, int initCount); }
+290	STD		{ int sys_free_semaphore(const char* name); }
+291	STD		{ int sys_down_semaphore(const char* name); }
+292	STD		{ int sys_up_semaphore(const char* name); }

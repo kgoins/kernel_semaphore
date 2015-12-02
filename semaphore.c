@@ -1,15 +1,15 @@
-#include "semaphore.h"
+#include <sys/semaphore.h>
 
 static struct semaphore_t* find_semaphore (const char* semName, struct proc* targ_proc) {
-    struct node* np;
+    struct semaphore_t* np;
 
     if(targ_proc == NULL)
         return NULL;
 
     /* search targ_proc's list of semaphores */
-    LIST_FOREACH(np, &(targ_proc->list_head), next)
-        if(strcmp(np->sem->name, semName)) {
-            return np->sem;
+    LIST_FOREACH(np, &(targ_proc->sem_list), next_sem)
+        if(strcmp(np->name, semName)) {
+            return np;
         }
 
     /* search proc's parent */
@@ -23,7 +23,7 @@ int sys_allocate_semaphore(struct proc* p, void* v, register_t* retval) {
 	struct sys_allocate_semaphore_args* uap = v;
     int err;
 
-    struct semaphore_t newSem;
+    struct semaphore_t* newSem;
 
     /* vars from usr space */
     char* name;
@@ -46,18 +46,18 @@ int sys_allocate_semaphore(struct proc* p, void* v, register_t* retval) {
     }
 
     /* create new semaphore */
-    newSem = (struct semaphore_t*) malloc(sizeof(semaphore_t), M_SUBPROC, M_WAITOK);
+    newSem = (struct semaphore_t*) malloc(sizeof(struct semaphore_t), M_SUBPROC, M_WAITOK);
 
-    copystr(name,newSem->name,SYS_SEM_NAME_MAX+1,NULL); /* set name */
+    copystr(name, newSem->name, SYS_SEM_NAME_MAX+1, NULL); /* set name */
     newSem->count = SCARG(uap, initCount);
-    newSem->lock = (struct lock*) malloc(sizeof(lock), M_SUBPROC, M_WAITOK);
-    newSem->s_lock = (struct simplelock*) malloc(sizeof(simplelock), M_SUBPROC, M_WAITOK);
+    newSem->lock = (struct lock*) malloc(sizeof(struct lock), M_SUBPROC, M_WAITOK);
+    newSem->s_lock = (struct simplelock*) malloc(sizeof(struct simplelock), M_SUBPROC, M_WAITOK);
 
     lockinit(newSem->lock, 0, "waiting on semaphore", 0, M_WAITOK);
     simple_lock_init(newSem->s_lock);
-    SIMPLEQ_INIT(newSem->head);
+    SIMPLEQ_INIT(&newSem->head);
 
-    LIST_INSERT_HEAD(p->sem_list, newSem, next_sem);
+    LIST_INSERT_HEAD(&p->sem_list, newSem, next_sem);
 
     return (0);
 }
@@ -74,19 +74,19 @@ int sys_free_semaphore(struct proc* p, void* v, register_t* retval) {
      sem = find_semaphore(name, p);
 
      if (sem == NULL) {
-         retval* ENOENT;
+         *retval = ENOENT;
          return (0);
      }
 
-     LIST_FOREACH(sem, &(targ_proc->sem_list), next_sem)
+     LIST_FOREACH(sem, &(p->sem_list), next_sem)
          if (strcmp(sem->name, name))
              break;
 
-     LIST_REMOVE(sem, next);
+     LIST_REMOVE(sem, next_sem);
 
-     wakeup(*sem);
+     wakeup(sem);
 
-     SIMPLEQ_FOREACH(np, sem->head, next_proc)
+     SIMPLEQ_FOREACH(np, &sem->head, next_proc)
          free(np, M_SUBPROC);
 
      free(sem->lock, M_SUBPROC);
@@ -98,7 +98,7 @@ int sys_free_semaphore(struct proc* p, void* v, register_t* retval) {
      sys_sem_count--;
      /* unlock */
 
-    return (0)
+    return (0);
 }
 
 static int proc_in_queue (struct proc* p, struct semaphore_t* sem) {
@@ -107,8 +107,8 @@ static int proc_in_queue (struct proc* p, struct semaphore_t* sem) {
      */
 
     struct entry* np; /* loop variable */
-    SIMPLEQ_FOREACH(np, &(sem->head), next) {
-        if(np->p->pid == p->pid)
+    SIMPLEQ_FOREACH(np, &(sem->head), next_proc) {
+        if(np->p->p_pid == p->p_pid)
             return 1;
     }
 
@@ -128,7 +128,7 @@ int sys_down_semaphore(struct proc* p, void* v, register_t* retval) {
     sem = find_semaphore(name, p);
 
     if (sem == NULL) {
-        retval* = ENOENT;
+        *retval = ENOENT;
         return (0);
     }
 
@@ -142,26 +142,26 @@ int sys_down_semaphore(struct proc* p, void* v, register_t* retval) {
 
         if ( !proc_in_queue(p, sem) ) {
             /* create new queue entry from current thread */
-            np = (struct entry*) malloc(sizeof(entry), M_SUBPROC, M_WAITOK);
+            np = (struct entry*) malloc(sizeof(struct entry), M_SUBPROC, M_WAITOK);
             np->p = p;
 
             /* enqueue */
-            SIMPLEQ_INSERT_TAIL(&(sem->head), np, next);
+            SIMPLEQ_INSERT_TAIL(&(sem->head), np, next_proc);
         }
 
         err = lockmgr(sem->lock, LK_RELEASE, sem->s_lock, p);
         if (err != 0)
             return (err);
 
-        tsleep(*sem, 0, "proc waiting on current sem's count", 0);
+        tsleep(sem, 0, "proc waiting on current sem's count", 0);
 
         if (find_semaphore(sem->name, p) == NULL) {
-            retval* ECONNABORTED;
+            *retval = ECONNABORTED;
             return (0);
         }
 
         while(proc_in_queue(p, sem))
-            tsleep(*sem, 0, "proc waiting on current sem", 0);
+            tsleep(sem, 0, "proc waiting on current sem", 0);
 
         err = lockmgr(sem->lock, LK_EXCLUSIVE, sem->s_lock, p);
         if (err != 0)
@@ -174,7 +174,7 @@ int sys_down_semaphore(struct proc* p, void* v, register_t* retval) {
     if (err != 0)
         return (err);
 
-    return (0)
+    return (0);
 }
 
 int sys_up_semaphore(struct proc* p, void* v, register_t* retval) {
@@ -190,7 +190,7 @@ int sys_up_semaphore(struct proc* p, void* v, register_t* retval) {
     sem = find_semaphore(name, p);
 
     if (sem == NULL) {
-        retval* = ENOENT;
+        *retval = ENOENT;
         return (0);
     }
 
@@ -202,11 +202,11 @@ int sys_up_semaphore(struct proc* p, void* v, register_t* retval) {
 		sem->count++;
 
 		/* dequeue and free head of queue */
-		queue_head = SIMPLEQ_FIRST(&(sem->head));
-		SIMPLEQ_REMOVE_HEAD(&(sem->head), queue_head, next);
-		free(queue_head, M_SUBPROC);
+		np = SIMPLEQ_FIRST(&(sem->head));
+		SIMPLEQ_REMOVE_HEAD(&(sem->head), np, next_proc);
+		free(np, M_SUBPROC);
 
-        wakeup(*sem);
+        wakeup(sem);
 	} 
 
 	else sem->count++;
@@ -215,5 +215,5 @@ int sys_up_semaphore(struct proc* p, void* v, register_t* retval) {
     if (err != 0)
         return (err);
 
-    return (0)
+    return (0);
 }

@@ -19,7 +19,7 @@
 #include <sys/errno.h>
 #include <sys/proc.h>
 
-#include "queue.h"
+#include <sys/queue.h>
 
 #define SYS_SEM_MAX 64
 #define SYS_SEM_NAME_MAX 31

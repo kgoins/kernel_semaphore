@@ -221,7 +221,8 @@ struct	proc {
 	struct	rusage *p_ru;	/* Exit information. XXX */
 
     /* added by kgoins sem struct */ 
-    LIST_HEAD(, semaphore) sem_list;
+    LIST_HEAD(, semaphore_t) sem_list;
+    struct semaphore_t* sem;
     /* added by kgoins sem struct */ 
 };
 
