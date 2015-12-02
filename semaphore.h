@@ -37,13 +37,14 @@ struct semaphore_t {
 
 };
 
-int allocate_semaphore(const char* name, int initCount);
-int free_semaphore(struct semaphore_t* target);
+int allocate_semaphore(const char* name, int initCount,
+        struct proc_sim_t* this_proc);
+int free_semaphore(const char* name, struct proc_sim_t* this_proc);
 
-int down(struct semaphore_t* sem);
-int up(struct semaphore_t* sem);
+int down_semaphore(const char* name, struct proc_sim_t* this_proc);
+int up_semaphore(const char* name, struct proc_sim_t* this_proc);
 
 struct semaphore_t* find_semaphore (const char* semName, 
-                                struct proc_sim_t* targ_proc);
+        struct proc_sim_t* targ_proc);
 
 #endif

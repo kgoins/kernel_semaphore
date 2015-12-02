@@ -18,23 +18,34 @@ static int thread_in_queue (pthread_t thread, struct semaphore_t* sem) {
 
 struct semaphore_t* find_semaphore (const char* semName, struct proc_sim_t* targ_proc) {
     struct node* np;
-    if(targ_proc->parent == NULL) 
+
+    printf("find: targ_proc pid is %d\n", targ_proc->pid);
+
+    if(targ_proc == NULL) {
+        printf("find: sem doesn't exist\n");
         return NULL;
+    }
 
     /* search targ_proc's list of semaphores */
     LIST_FOREACH(np, &(targ_proc->list_head), next)
-        if(strcmp(np->sem->name, semName))
+        if(strcmp(np->sem->name, semName)) {
+            printf("Found sem: %s\n", np->sem->name);
             return np->sem;
+        }
 
     /* search proc's parent */
+    printf("Find: Starting recursion\n");
     find_semaphore(semName, targ_proc->parent);
 
     return NULL;
 }
 
-int createSem ( const char* name, int initCount , struct proc_sim_t* this_proc) {
+int allocate_semaphore( const char* name, int initCount , struct proc_sim_t* this_proc) {
     struct semaphore_t* newSem; /* the newly created semaphore */
     struct node* np; /* will hold the new sem in its proc's sem list */
+
+    printf("alloc: starting\n");
+    printf("alloc: this proc's pid is %d\n", this_proc->pid);
 
     if ( sys_sem_count >= SYS_SEM_MAX )
         return ENOMEM;
@@ -47,7 +58,6 @@ int createSem ( const char* name, int initCount , struct proc_sim_t* this_proc) 
 
     /* create new semaphore */
     newSem = (struct semaphore_t*) malloc(sizeof(struct semaphore_t));
-
 
     /* set name and count*/
     newSem->count = initCount;
@@ -66,37 +76,39 @@ int createSem ( const char* name, int initCount , struct proc_sim_t* this_proc) 
     newSem->my_proc = this_proc;
 
     /* wrap sem in node and add to its proc's sem list */
-    np = (struct node*) malloc(sizeof(struct node));
+    np = (struct node*)malloc(sizeof(struct node));
     np->sem = newSem;
 
-    LIST_INSERT_HEAD( &(newSem->my_proc->list_head), np, next);
+    LIST_INSERT_HEAD( &(this_proc->list_head), np, next);
 
     /* lock */
     ++sys_sem_count;
     /* unlock */
+    printf("finished creating sem\n");
 
     return 0;
 }
 
-int free_semaphore (struct semaphore_t* targSem) {
+int free_semaphore (const char* name, struct proc_sim_t* this_proc) {
     struct node* np; /*loop var*/
+    struct semaphore_t* sem = find_semaphore(name, this_proc);
 
-    if (find_semaphore(targSem->name, targSem->my_proc) == NULL)
+    if (sem == NULL) {
+        printf("Sem wasn't found!\n");
         return ENOENT;
+    }
 
-    pthread_mutex_destroy(&targSem->mutex);
-    pthread_cond_destroy(&targSem->cond);
+    pthread_mutex_destroy(&sem->mutex);
+    pthread_cond_destroy(&sem->cond);
 
-    /* find semaphore and return its containing node */
-    LIST_FOREACH(np, &(targSem->my_proc->list_head), next)
-        if (strcmp(targSem->name, np->sem->name))
+    LIST_FOREACH(np, &(sem->my_proc->list_head), next)
+        if (strcmp(sem->name, np->sem->name))
             break;
 
-    /* remove node from list and destroy node */
     LIST_REMOVE(np,next);
     free(np);
 
-    free(targSem);
+    free(sem);
 
     /* lock */
     sys_sem_count--;
@@ -105,10 +117,11 @@ int free_semaphore (struct semaphore_t* targSem) {
     return 0;
 }
 
-int down (struct semaphore_t* sem) {
+int down_semaphore(const char* name, struct proc_sim_t* this_proc) {
     struct entry* np; /* will hold node for process wait queue if needed  */
+    struct semaphore_t* sem = find_semaphore(name, this_proc);
 
-    if (find_semaphore(sem->name, sem->my_proc) == NULL)
+    if (sem == NULL)
         return ENOENT;
 
     printf("Count: %d\n", sem->count);
@@ -139,10 +152,11 @@ int down (struct semaphore_t* sem) {
     return 0;
 }
 
-int up (struct semaphore_t* sem) {
+int up_semaphore(const char* name, struct proc_sim_t* this_proc) {
     struct entry* queue_head;
+    struct semaphore_t* sem = find_semaphore(name, this_proc);
 
-    if (find_semaphore(sem->name, sem->my_proc) == NULL)
+    if (sem == NULL)
         return ENOENT;
 
     pthread_mutex_lock(&sem->mutex);
