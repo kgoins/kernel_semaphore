@@ -1,10 +1,22 @@
 #ifndef SEM_H
 #define SEM_H
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
+#include <sys/param.h>
+#include <sys/acct.h>
+#include <sys/systm.h>
+#include <sys/ucred.h>
+#include <sys/proc.h>
+#include <sys/timeb.h>
+#include <sys/times.h>
+#include <sys/malloc.h>
+#include <sys/filedesc.h>
+#include <sys/pool.h>
+
+#include <sys/mount.h>
+#include <sys/syscallargs.h>
+
+
+#include <sys/errno.h>
 #include <sys/proc.h>
 
 #include "queue.h"

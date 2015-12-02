@@ -2,7 +2,7 @@
 
 int sys_sem_count = 0;
 
-static int thread_in_queue (pid_t pid, struct semaphore_t* sem) {
+static int proc_in_queue (int pid, struct semaphore_t* sem) {
     /* if the thread is in sem's wait queue, return 1
      * else, return 0
      */
@@ -10,9 +10,10 @@ static int thread_in_queue (pid_t pid, struct semaphore_t* sem) {
     struct entry* np; /* loop variable */
 
     SIMPLEQ_FOREACH(np, &(sem->head), next) {
-        if(pthread_equal(np->thread, thread))
+        if(np->pid == pid)
             return 1;
     }
+
     return 0;
 }
 
@@ -126,10 +127,10 @@ int down_semaphore(const char* name) {
 
     /* threads must wait if no resources are available, */
     /* or if they are already waiting */
-    while (sem->count == 0 || thread_in_queue(pthread_self(), sem)) {
+    while (sem->count == 0 || proc_in_queue(pid, sem)) {
         printf("Thread is waiting\n");
 
-        if ( !thread_in_queue(pthread_self(), sem) ) {
+        if ( !proc_in_queue(pid, sem) ) {
             /* create new queue entry from current thread */
             np = (struct entry*) malloc(sizeof(struct entry));
             np->thread = pthread_self();
