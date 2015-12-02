@@ -45,6 +45,7 @@
 #include <sys/queue.h>
 #include <sys/timeout.h>		/* For struct timeout. */
 #include <sys/event.h>			/* For struct klist */
+#include <sys/semaphore.h>
 
 /*
  * One structure allocated per session.
@@ -108,6 +109,7 @@ struct	emul {
 
 extern struct emul *emulsw[];		/* All emuls in system */
 extern int nemuls;			/* Number of emuls */
+
 
 /*
  * Description of a process.
@@ -217,6 +219,10 @@ struct	proc {
 	u_short	p_xstat;	/* Exit status for wait; also stop signal. */
 	u_short	p_acflag;	/* Accounting flags. */
 	struct	rusage *p_ru;	/* Exit information. XXX */
+
+    /* added by kgoins sem struct */ 
+    LIST_HEAD(, semaphore) sem_list;
+    /* added by kgoins sem struct */ 
 };
 
 #define	p_session	p_pgrp->pg_session

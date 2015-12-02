@@ -26,21 +26,22 @@
 
 extern int sys_sem_count;
 
-struct entry {
-    int pid;
-    SIMPLEQ_ENTRY(entry) next;
-};
-
-struct queuehead {
-    struct entry *sqh_first;
-    struct entry **sqh_last;
-} ;
 
 struct semaphore_t {
     int count;
     char name[SYS_SEM_NAME_MAX];
 
-    struct queuehead head;
+    struct lock* lock;
+    struct simplelock* s_lock;
+
+    struct queuehead {
+        struct entry {
+            struct proc* p;
+            SIMPLEQ_ENTRY(entry) next_proc;
+        } *sqh_first,**sqh_last;
+    } head;
+
+    LIST_ENTRY(semaphore_t) next_sem;
 };
 
 #endif
